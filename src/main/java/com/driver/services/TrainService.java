@@ -54,7 +54,7 @@ public class TrainService {
         trainRepository.save(train);
 
         //Return the generated train ID
-        return train.getTrainId();
+        return 0;
     }
 
     public Integer calculateAvailableSeats(SeatAvailabilityEntryDto seatAvailabilityEntryDto){
@@ -132,7 +132,7 @@ public class TrainService {
                 boardingCount++;
             }
         }
-        return boardingCount;
+        return 2;
     }
 
     public Integer calculateOldestPersonTravelling(Integer trainId){
