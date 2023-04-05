@@ -43,71 +43,67 @@ public class TicketService {
         //Also in the passenger Entity change the attribute bookedTickets by using the attribute bookingPersonId.
        //And the end return the ticketId that has come from db
 
-        // Check if the train exists
-        Train train = trainRepository.findById(bookTicketEntryDto.getTrainId())
-                .orElseThrow(() -> new Exception("Invalid train"));
-
-        // Check if the requested stations are valid
-        String[] stations = Station.values().toString().split(",");
-        //System.out.println(stations);
-        int fromIndex = -1, toIndex = -1;
-        for (int i = 0; i < stations.length; i++) {
-            if (stations[i].equalsIgnoreCase(bookTicketEntryDto.getFromStation().toString())) {
-                fromIndex = i;
-            }
-            if (stations[i].equalsIgnoreCase(bookTicketEntryDto.getToStation().toString())) {
-                toIndex = i;
-            }
-        }
-        if (fromIndex == -1 || toIndex == -1 || fromIndex >= toIndex) {
+        // Check for validity
+        if (bookTicketEntryDto.getFromStation() == null || bookTicketEntryDto.getToStation() == null) {
             throw new Exception("Invalid stations");
         }
+        if (bookTicketEntryDto.getNoOfSeats() <= 0) {
+            throw new Exception("Number of seats should be greater than 0");
+        }
 
-        // Check if there are enough available tickets
-        List<Ticket> bookedTickets = ticketRepository.findByTrainIdAndStation(train.getTrainId(), bookTicketEntryDto.getFromStation().toString());
-        int availableTickets = train.getNoOfSeats() - bookedTickets.size();
-        if (availableTickets < bookTicketEntryDto.getNoOfSeats()) {
+        // Get the train from the repository
+        Train train = trainRepository.findById(bookTicketEntryDto.getTrainId()).get();
+
+        // Use bookedTickets List from the TrainRepository to get bookings done against that train
+        List<Ticket> bookedTickets = trainRepository.findByTrain(train.getTrainId());
+
+        // Check if there are sufficient tickets
+        int totalSeats = train.getNoOfSeats();
+        int availableSeats = totalSeats - bookedTickets.size();
+        if (bookTicketEntryDto.getNoOfSeats() > availableSeats) {
             throw new Exception("Less tickets are available");
         }
 
-        // Create new passenger entities and save them to the database
-        List<Passenger> passengers = new ArrayList<>();
-        for (int i = 0; i < bookTicketEntryDto.getNoOfSeats(); i++) {
-            Passenger passenger = new Passenger();
-            passenger.setName(bookTicketEntryDto.getPassengerIds().get(i).toString());
-            passengers.add(passenger);
-            passengerRepository.save(passenger);
-        }
+        // Calculate the price and other details
+        int basePrice = 100;
+        int totalPrice = basePrice * bookTicketEntryDto.getNoOfSeats();
 
-        // Calculate the price of the ticket based on the fare system
-        int distance = toIndex - fromIndex;
-        int baseFare = 100;
-        int price = (int) (baseFare * (1 + 0.1 * distance));
-
-        // Create a new ticket entity and save it to the database
+        // Save the information in corresponding DB Tables
+        // Create the ticket
         Ticket ticket = new Ticket();
-        ticket.setTrain(train);
-        ticket.setPassengersList(passengers);
-        ticket.setTotalFare(price);
         ticket.setFromStation(bookTicketEntryDto.getFromStation());
         ticket.setToStation(bookTicketEntryDto.getToStation());
-        ticketRepository.save(ticket);
+        ticket.setTotalFare(totalPrice);
 
-        // Update the train entity with the new booked tickets
-//        for (int i = fromIndex; i < toIndex; i++) {
-//            train.getBookedTickets().put(stations[i], train.getBookedTickets().getOrDefault(stations[i], 0) + bookTicketEntryDto.getNumPassengers());
-//        }
-        train.getBookedTickets().add(ticket);
-        trainRepository.save(train);
-
-        // Update the passenger entities with the booked ticket IDs
-        for (Passenger passenger : passengers) {
-            passenger.setBookedTickets(ticket.getTrain().getBookedTickets());
-            passengerRepository.save(passenger);
+        // Create the passengers
+        List<Passenger> passengers = new ArrayList<>();
+        for (int passengerId : bookTicketEntryDto.getPassengerIds()) {
+            Passenger passenger = passengerRepository.findByPassenger(passengerId);
+            if (passenger == null) {
+                throw new Exception("Passenger with id " + passengerId + " does not exist");
+            }
+            passengers.add(passenger);
+            passenger.getBookedTickets().add(ticket);
         }
 
-        // Return the ID of the newly created ticket
+        // Set the ticket's passengers
+        ticket.setPassengersList(passengers);
+
+        // Set the ticket's train
+        ticket.setTrain(train);
+
+        // Save the ticket
+        ticketRepository.save(ticket);
+
+        // Save the bookedTickets in the train Object
+        List<Ticket> trainTickets = train.getBookedTickets();
+        trainTickets.add(ticket);
+        train.setBookedTickets(trainTickets);
+
+        // Return the ticket id
         return ticket.getTicketId();
 
     }
+
+
 }
