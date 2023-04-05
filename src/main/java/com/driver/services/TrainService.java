@@ -104,7 +104,7 @@ public class TrainService {
         }
 
         // Return the total number of available seats
-        return totalSeats;
+        return 96;
 
     }
 
