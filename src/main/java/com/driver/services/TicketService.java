@@ -79,9 +79,9 @@ public class TicketService {
         List<Passenger> passengers = new ArrayList<>();
         for (int passengerId : bookTicketEntryDto.getPassengerIds()) {
             Passenger passenger = passengerRepository.findByPassenger(passengerId);
-            if (passenger == null) {
-                throw new Exception("Passenger with id " + passengerId + " does not exist");
-            }
+//            if (passenger == null) {
+//                throw new Exception("Passenger with id " + passengerId + " does not exist");
+//            }
             passengers.add(passenger);
             passenger.getBookedTickets().add(ticket);
         }
