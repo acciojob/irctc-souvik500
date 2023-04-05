@@ -49,6 +49,7 @@ public class TicketService {
 
         // Check if the requested stations are valid
         String[] stations = Station.values().toString().split(",");
+        //System.out.println(stations);
         int fromIndex = -1, toIndex = -1;
         for (int i = 0; i < stations.length; i++) {
             if (stations[i].equalsIgnoreCase(bookTicketEntryDto.getFromStation().toString())) {
@@ -74,7 +75,6 @@ public class TicketService {
         for (int i = 0; i < bookTicketEntryDto.getNoOfSeats(); i++) {
             Passenger passenger = new Passenger();
             passenger.setName(bookTicketEntryDto.getPassengerIds().get(i).toString());
-            passenger.setPassengerId(bookTicketEntryDto.getBookingPersonId());
             passengers.add(passenger);
             passengerRepository.save(passenger);
         }
@@ -89,12 +89,15 @@ public class TicketService {
         ticket.setTrain(train);
         ticket.setPassengersList(passengers);
         ticket.setTotalFare(price);
+        ticket.setFromStation(bookTicketEntryDto.getFromStation());
+        ticket.setToStation(bookTicketEntryDto.getToStation());
         ticketRepository.save(ticket);
 
         // Update the train entity with the new booked tickets
 //        for (int i = fromIndex; i < toIndex; i++) {
 //            train.getBookedTickets().put(stations[i], train.getBookedTickets().getOrDefault(stations[i], 0) + bookTicketEntryDto.getNumPassengers());
 //        }
+        train.getBookedTickets().add(ticket);
         trainRepository.save(train);
 
         // Update the passenger entities with the booked ticket IDs
